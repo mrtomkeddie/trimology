@@ -4,22 +4,17 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { z } from 'zod';
-import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
-import { app as mainApp, firebaseConfig } from '@/lib/firebase';
-import { initializeApp, getApp, deleteApp } from 'firebase/app';
-
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { setAdminRecord, updateAdmin } from '@/lib/firestore';
 import { AdminFormSchema, type AdminUser, type Location, type Staff } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info, Shield, Link2 } from 'lucide-react';
+import { addAdmin, updateAdmin } from '@/lib/data';
 
 type AdminFormValues = z.infer<typeof AdminFormSchema>;
 
@@ -118,7 +113,6 @@ export function AdminForm({ isOpen, setIsOpen, admin, locations, staff, allAdmin
                 const selectedStaffMember = staff.find(s => s.id === selectedStaffId);
 
                 if (selectedStaffMember) { // --- SCENARIO 1: PROMOTE EXISTING STAFF ---
-                    const uid = selectedStaffMember.id;
                     const location = locations.find(l => l.id === data.locationId);
                     if (!location) throw new Error("A location must be assigned.");
 
@@ -128,7 +122,15 @@ export function AdminForm({ isOpen, setIsOpen, admin, locations, staff, allAdmin
                         locationName: location.name,
                     };
                     
-                    await setAdminRecord(uid, submissionData);
+                    // In a dummy data setup, we don't need to create a new user, just an admin record.
+                    // The linking happens via email.
+                    await addAdmin({
+                        id: selectedStaffMember.id,
+                        email: selectedStaffMember.email,
+                        locationId: location.id,
+                        locationName: location.name,
+                    })
+
                     toast({ title: 'Success', description: 'Staff member promoted to Admin successfully.' });
 
                 } else { // --- SCENARIO 2: CREATE NEW ADMIN USER ---
@@ -148,26 +150,17 @@ export function AdminForm({ isOpen, setIsOpen, admin, locations, staff, allAdmin
                         setIsSubmitting(false);
                         return;
                     }
+                    
+                    const newAdmin = {
+                        id: `admin_${Date.now()}`,
+                        email: data.email,
+                        locationId: location.id,
+                        locationName: location.name,
+                        // password isn't stored, just used for the dummy login check
+                    };
 
-                    const tempAppName = `temp-user-creation-${Date.now()}`;
-                    const tempApp = initializeApp(firebaseConfig, tempAppName);
-                    const tempAuth = getAuth(tempApp);
-
-                    try {
-                        const userCredential = await createUserWithEmailAndPassword(tempAuth, data.email, data.password);
-                        const uid = userCredential.user.uid;
-
-                        const submissionData = {
-                            email: data.email,
-                            locationId: location.id,
-                            locationName: location.name,
-                        };
-                        
-                        await setAdminRecord(uid, submissionData);
-                        toast({ title: 'Success', description: 'Branch Admin added successfully.' });
-                    } finally {
-                        await deleteApp(tempApp);
-                    }
+                    await addAdmin(newAdmin);
+                    toast({ title: 'Success', description: 'Branch Admin added successfully.' });
                 }
             }
             onSubmitted();

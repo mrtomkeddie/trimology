@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { getBookingsFromFirestore, getLocationsFromFirestore } from "@/lib/firestore";
+import { getBookings, getLocations } from "@/lib/data";
 import { BookingsList } from "@/components/bookings-list";
 import { ArrowLeft, PlusCircle, Loader2, ShieldAlert } from "lucide-react";
 import Link from "next/link";
@@ -24,8 +24,8 @@ export default function ManageBookingsPage() {
         setError(null);
         try {
             const [fetchedBookings, fetchedLocations] = await Promise.all([
-                getBookingsFromFirestore(adminUser.locationId),
-                getLocationsFromFirestore(adminUser.locationId),
+                getBookings(adminUser.locationId),
+                getLocations(adminUser.locationId),
             ]);
             setBookings(fetchedBookings);
             setLocations(fetchedLocations);

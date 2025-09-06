@@ -3,26 +3,20 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { StaffLoginForm } from '@/components/staff-login-form';
 import { Loader2 } from 'lucide-react';
+import { useAdmin } from '@/contexts/AdminContext';
 
 export default function StaffLoginPage() {
   const router = useRouter();
-  const [loading, setLoading] = React.useState(true);
+  const { adminUser, loading } = useAdmin();
 
   React.useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
+    if (!loading && adminUser) {
         router.push('/my-schedule');
-      } else {
-        setLoading(false);
-      }
-    });
-    return () => unsubscribe();
-  }, [router]);
-
+    }
+  }, [adminUser, loading, router]);
+  
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -31,5 +25,6 @@ export default function StaffLoginPage() {
     );
   }
 
+  // Render login form if not loading and no user
   return <StaffLoginForm />;
 }

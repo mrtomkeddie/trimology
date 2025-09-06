@@ -1,27 +1,27 @@
 
 'use client';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
-import type { User } from 'firebase/auth';
 import { LogOut, Scissors, Users, QrCode, ArrowRight, Key, CalendarDays, Shield, Heart } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
 import type { AdminUser } from '@/lib/types';
-
+import { useAdmin } from '@/contexts/AdminContext';
+import { useRouter } from 'next/navigation';
 
 type AdminDashboardProps = {
-  user: User;
+  user: AdminUser;
   adminUser: AdminUser;
 };
 
 export function AdminDashboard({ user, adminUser }: AdminDashboardProps) {
+  const { logout } = useAdmin();
+  const router = useRouter();
 
-  const handleLogout = async () => {
-    await signOut(auth);
+  const handleLogout = () => {
+    logout();
+    router.push('/admin'); // Redirect to login page after logout
   };
   
-  // Super admins are identified by NOT having a locationId.
   const isSuperAdmin = !adminUser.locationId;
 
   return (

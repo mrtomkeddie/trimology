@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { getStaffFromFirestore, getLocationsFromFirestore, getAdminsFromFirestore } from "@/lib/firestore";
+import { getStaff, getLocations, getAdmins } from "@/lib/data";
 import { StaffList } from "@/components/staff-list";
 import { ArrowLeft, Loader2, ShieldAlert } from "lucide-react";
 import Link from "next/link";
@@ -25,9 +25,9 @@ export default function ManageStaffPage() {
         setError(null);
         try {
             const [fetchedStaff, fetchedLocations, fetchedAdmins] = await Promise.all([
-                getStaffFromFirestore(adminUser.locationId),
-                getLocationsFromFirestore(adminUser.locationId),
-                getAdminsFromFirestore(adminUser.locationId),
+                getStaff(adminUser.locationId),
+                getLocations(adminUser.locationId),
+                getAdmins(adminUser.locationId),
             ]);
             setStaff(fetchedStaff);
             setLocations(fetchedLocations);

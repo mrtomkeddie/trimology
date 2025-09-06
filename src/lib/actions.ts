@@ -2,25 +2,20 @@
 'use server';
 
 import { format, parse, addMinutes, getDay, isBefore, isAfter, startOfDay, startOfMonth, endOfMonth, isSameDay, addDays } from 'date-fns';
-import { getLocations, getServices, getStaff } from './data';
+import { getLocations, getServices, getStaff, getBookings, addBooking as addBookingToDummyData, getBookingsByStaffId } from './data';
 import type { Booking, NewBooking, Staff } from './types';
-import { addBooking, getBookingsForStaffOnDate, getBookingsForStaffInRange } from './firestore';
+
 
 // Helper to map JS day index (Sun=0) to our string keys
 const dayMap: (keyof Staff['workingHours'])[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
 // --- Reusable Conflict Check Helper Function ---
-// This function assumes all date objects passed to it are in the same timezone (server's local time)
 const checkForConflicts = async (staffId: string, start: Date, end: Date): Promise<boolean> => {
-    // This now queries using UTC-based date objects.
-    const existingBookings = await getBookingsForStaffOnDate(staffId, start);
+    const existingBookings = await getBookingsByStaffId(staffId);
 
     return existingBookings.some(b => {
-        // Create Date objects from the UTC timestamp strings for comparison
         const existingStart = new Date(b.bookingTimestamp);
         const existingEnd = addMinutes(existingStart, b.serviceDuration);
-        
-        // Check for overlap: (StartA < EndB) and (EndA > StartB)
         return isBefore(start, existingEnd) && isAfter(end, existingStart);
     });
 };
@@ -33,7 +28,6 @@ async function getIndividualStaffTimes(
 ): Promise<string[]> {
     if (!staffMember.workingHours) return [];
     
-    // Construct a date object from the preferred date string. It will be interpreted in the server's local timezone.
     const preferredDate = new Date(`${preferredDateStr}T00:00:00`);
     if (isNaN(preferredDate.getTime())) {
         return [];
@@ -128,14 +122,9 @@ export async function createBooking(bookingData: BookingData) {
     
     if (!location || !service) throw new Error("Invalid location or service selected.");
 
-    // Create an unambiguous UTC timestamp string. This is the core of the fix.
     const datePart = format(bookingData.date, 'yyyy-MM-dd');
     const timePart = bookingData.time;
-    const bookingTimestampString = `${datePart}T${timePart}:00.000Z`;
-
-    // Create a Date object from this UTC string for calculations.
-    const bookingStart = new Date(bookingTimestampString);
-    if (isNaN(bookingStart.getTime())) throw new Error("Invalid date or time for booking.");
+    const bookingStart = new Date(`${datePart}T${timePart}:00`);
     const bookingEnd = addMinutes(bookingStart, service.duration);
     
     let assignedStaff: Staff | undefined | null = null;
@@ -148,15 +137,10 @@ export async function createBooking(bookingData: BookingData) {
             const dayHours = potentialStaff.workingHours?.[dayOfWeek];
             if (!dayHours || dayHours === 'off') continue;
 
-            // Use the user's selected date (bookingData.date) to parse working hours, avoiding server timezone shifts.
-            const workDayStart = parse(dayHours.start, 'HH:mm', bookingData.date);
-            const workDayEnd = parse(dayHours.end, 'HH:mm', bookingData.date);
+            const workDayStart = parse(dayHours.start, 'HH:mm', bookingStart);
+            const workDayEnd = parse(dayHours.end, 'HH:mm', bookingStart);
 
-            // Reconstruct bookingStart/End relative to the same day for accurate working hours check
-            const bookingStartInDay = parse(timePart, 'HH:mm', bookingData.date);
-            const bookingEndInDay = addMinutes(bookingStartInDay, service.duration);
-
-            if (!isBefore(bookingStartInDay, workDayStart) && !isAfter(bookingEndInDay, workDayEnd)) {
+            if (!isBefore(bookingStart, workDayStart) && !isAfter(bookingEnd, workDayEnd)) {
                 const hasConflict = await checkForConflicts(potentialStaff.id, bookingStart, bookingEnd);
                 if (!hasConflict) {
                     assignedStaff = potentialStaff;
@@ -185,17 +169,15 @@ export async function createBooking(bookingData: BookingData) {
         staffId: assignedStaff.id,
         staffName: assignedStaff.name,
         staffImageUrl: assignedStaff.imageUrl || '',
-        bookingTimestamp: bookingTimestampString, // Store the unambiguous UTC string
+        bookingTimestamp: bookingStart.toISOString(),
         clientName: bookingData.clientName,
         clientPhone: bookingData.clientPhone,
         clientEmail: bookingData.clientEmail || '',
     };
 
-    await addBooking(newBooking);
+    await addBookingToDummyData(newBooking);
 
-    if (bookingData.clientEmail) {
-        console.log(`Email confirmation would be sent to ${bookingData.clientEmail}`);
-    }
+    console.log("New booking added to dummy data store:", newBooking);
 
     return { success: true };
 }
@@ -236,9 +218,13 @@ export async function getUnavailableDays(month: Date, serviceId: string, staffId
             return { success: true, unavailableDays: allDays };
         }
 
-        const allBookingsForMonth = await getBookingsForStaffInRange(staffToCheck.map(s => s.id), monthStart, monthEnd);
+        const staffIds = staffToCheck.map(s => s.id);
+        const allBookingsForMonth = (await getBookings()).filter(b => 
+            staffIds.includes(b.staffId) &&
+            new Date(b.bookingTimestamp) >= monthStart &&
+            new Date(b.bookingTimestamp) <= monthEnd
+        );
         
-        // OPTIMIZATION: Pre-group bookings by day and then by staff for O(1) lookup inside the loops.
         const bookingsByDayAndStaff: Record<string, Record<string, Booking[]>> = {};
         allBookingsForMonth.forEach(booking => {
             const dayStr = format(new Date(booking.bookingTimestamp), 'yyyy-MM-dd');
@@ -268,7 +254,6 @@ export async function getUnavailableDays(month: Date, serviceId: string, staffId
                 const workDayStart = parse(dayHours.start, 'HH:mm', currentDay);
                 const workDayEnd = parse(dayHours.end, 'HH:mm', currentDay);
                 
-                // OPTIMIZATION: Direct lookup instead of filtering the whole month's bookings every time.
                 const staffBookingsForDay = bookingsByDayAndStaff[currentDayStr]?.[staffMember.id] || [];
                 
                 let potentialSlotStart = workDayStart;

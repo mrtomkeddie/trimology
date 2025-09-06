@@ -5,7 +5,7 @@ import type { Staff, Location, AdminUser } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StaffForm } from './staff-form';
-import { deleteStaff } from '@/lib/firestore';
+import { deleteStaff } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -109,7 +109,7 @@ export function StaffList({ staff, locations, admins, onStaffChanged }: StaffLis
                     <Info className="h-4 w-4" />
                     <AlertTitle>No Locations Found</AlertTitle>
                     <AlertDescription>
-                        You must add a location in the 'Manage Locations' section before you can create a staff member.
+                        You must add a location before you can create a staff member.
                     </AlertDescription>
                 </Alert>
             )}

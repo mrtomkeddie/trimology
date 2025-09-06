@@ -2,7 +2,7 @@
 'use client';
 import * as React from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { getLocationsFromFirestore } from '@/lib/firestore';
+import { getLocations } from '@/lib/data';
 import type { Location } from '@/lib/types';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,7 +77,7 @@ export default function ManageLocationsPage() {
         if (!adminUser) return;
         setLoading(true);
         try {
-            const fetchedLocations = await getLocationsFromFirestore(adminUser.locationId);
+            const fetchedLocations = await getLocations(adminUser.locationId);
             setLocations(fetchedLocations);
         } catch (e) {
             setError(e instanceof Error ? e.message : "Failed to fetch location data.");

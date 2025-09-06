@@ -2,8 +2,6 @@
 'use client';
 
 import * as React from 'react';
-import { onAuthStateChanged, signOut, updatePassword, type User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +13,7 @@ import { useAdmin } from '@/contexts/AdminContext';
 
 export default function SettingsPage() {
     const { toast } = useToast();
-    const { adminUser, loading: adminLoading } = useAdmin(); // Use context
+    const { adminUser, loading: adminLoading, logout } = useAdmin(); // Use context
     const [newPassword, setNewPassword] = React.useState('');
     const [isChangingPassword, setIsChangingPassword] = React.useState(false);
     
@@ -25,22 +23,17 @@ export default function SettingsPage() {
             return;
         }
         setIsChangingPassword(true);
-        try {
-            if (auth.currentUser) {
-                await updatePassword(auth.currentUser, newPassword);
-                await signOut(auth);
-                toast({ title: 'Success', description: 'Password updated. Please log in again with your new password.' });
-            } else {
-                throw new Error('No user is currently signed in.');
-            }
-        } catch (error) {
-            toast({ title: 'Error', description: 'Could not change password. You may need to sign out and sign back in to continue.', variant: 'destructive' });
+        // Since we are using dummy data, we just simulate the process
+        setTimeout(() => {
+            // In a real app, you would call your backend here to update the password.
+            // For now, we just log out the user.
+            logout();
+            toast({ title: 'Success', description: 'Password updated. Please log in again with your new password.' });
             setIsChangingPassword(false);
-        }
+            // The layout will handle redirecting to the login page because the user is logged out.
+        }, 1000);
     };
     
-    // The main loading and auth check is now handled by the AdminLayout.
-    // We just need to check the admin context loading state.
     if (adminLoading) {
         return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
     }

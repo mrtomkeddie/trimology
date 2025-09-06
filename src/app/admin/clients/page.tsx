@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { getClientLoyaltyData, getLocationsFromFirestore } from "@/lib/firestore";
+import { getClientLoyaltyData, getLocations } from "@/lib/data";
 import { ClientsList } from "@/components/clients-list";
 import { ArrowLeft, Loader2, ShieldAlert } from "lucide-react";
 import Link from "next/link";
@@ -24,7 +24,7 @@ export default function ClientLoyaltyPage() {
         try {
             const [fetchedClients, fetchedLocations] = await Promise.all([
                 getClientLoyaltyData(adminUser.locationId),
-                getLocationsFromFirestore(adminUser.locationId),
+                getLocations(adminUser.locationId),
             ]);
             setClients(fetchedClients);
             setLocations(fetchedLocations);

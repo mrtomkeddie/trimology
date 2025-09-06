@@ -2,8 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import { signInWithEmailAndPassword, sendPasswordResetEmail, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,8 +19,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, LogIn } from 'lucide-react';
 import Link from 'next/link';
-import { DUMMY_ADMIN_USERS } from '@/lib/data';
-import { getAdminUser } from '@/lib/firestore';
+import { getAdminUserByEmail } from '@/lib/data';
+import { useAdmin } from '@/contexts/AdminContext';
+import { useRouter } from 'next/navigation';
 
 export function AdminLoginForm() {
   const [email, setEmail] = useState('');
@@ -31,53 +30,36 @@ export function AdminLoginForm() {
   const [resetEmail, setResetEmail] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const { toast } = useToast();
+  const { login } = useAdmin();
+  const router = useRouter();
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // On success, the onAuthStateChanged listener in the layout will handle the redirect.
-    } catch (error) {
-        const errorCode = (error as any).code;
 
-        // Special handling for demo users: if user doesn't exist, create them
-        const isDummyUser = DUMMY_ADMIN_USERS.some(u => u.email === email);
-        if (errorCode === 'auth/user-not-found' && isDummyUser) {
-            try {
-                if (password.length < 6) {
-                     toast({ title: 'Password Too Short', description: 'Your password must be at least 6 characters long.', variant: 'destructive'});
-                     setIsLoading(false);
-                     return;
-                }
-                await createUserWithEmailAndPassword(auth, email, password);
-                 toast({ title: 'Account Created', description: "We've created a new account for this demo user. You are now logged in." });
-                // The onAuthStateChanged listener will handle the rest.
-                return;
-            } catch (creationError) {
-                 toast({ title: 'Creation Failed', description: 'Could not create demo user account.', variant: 'destructive'});
-                 setIsLoading(false);
-                 return;
-            }
-        }
-        
-        if (errorCode === 'auth/user-not-found' || errorCode === 'auth/invalid-credential') {
-             toast({
-                title: 'Login Failed',
-                description: 'The email or password you entered is incorrect. Please try again or use "Forgot Password".',
-                variant: 'destructive',
-            });
+    try {
+        const adminUser = await getAdminUserByEmail(email);
+
+        if (adminUser) {
+            // In a dummy data setup, we don't check the password.
+            // A real implementation would verify the password hash here.
+            login(adminUser);
+            router.push('/admin');
         } else {
-             let errorMessage = 'An unexpected error occurred. Please try again.';
-             if (errorCode === 'auth/invalid-api-key' || errorCode === 'auth/api-key-not-valid.-please-pass-a-valid-api-key.') {
-                errorMessage = 'Your Firebase API Key is not configured correctly. Please check your environment variables.';
-            }
             toast({
                 title: 'Login Failed',
-                description: errorMessage,
+                description: 'The email you entered was not found.',
                 variant: 'destructive',
             });
         }
+    } catch (error) {
+        toast({
+            title: 'Login Error',
+            description: 'An unexpected error occurred. Please try again.',
+            variant: 'destructive',
+        });
+    } finally {
         setIsLoading(false);
     }
   };
@@ -88,16 +70,13 @@ export function AdminLoginForm() {
         return;
     }
     setIsResetting(true);
-    try {
-        await sendPasswordResetEmail(auth, resetEmail);
-        toast({ title: 'Password Reset Email Sent', description: 'Check your inbox for instructions to reset your password.' });
-        document.getElementById('close-reset-dialog')?.click();
-    } catch (error) {
-        toast({ title: 'Error', description: 'Could not send password reset email. Please check the address and try again.', variant: 'destructive' });
-    } finally {
-        setIsResetting(false);
-        setResetEmail('');
-    }
+    // This is a dummy implementation
+    setTimeout(() => {
+      toast({ title: 'Password Reset Email Sent', description: 'If this were a real app, you would have received an email!' });
+      setIsResetting(false);
+      document.getElementById('close-reset-dialog')?.click();
+      setResetEmail('');
+    }, 1000);
   };
 
 

@@ -1,7 +1,7 @@
 
 'use client';
 import * as React from 'react';
-import { getLocationsFromFirestore, getServicesFromFirestore, getStaffFromFirestore } from "@/lib/firestore";
+import { getLocations, getServices, getStaff } from "@/lib/data";
 import { AdminBookingForm } from "@/components/admin-booking-form";
 import { ArrowLeft, Loader2, ShieldAlert } from "lucide-react";
 import Link from "next/link";
@@ -23,9 +23,9 @@ export default function NewBookingPage() {
         const fetchData = async () => {
             try {
                 const [fetchedLocations, fetchedServices, fetchedStaff] = await Promise.all([
-                    getLocationsFromFirestore(),
-                    getServicesFromFirestore(),
-                    getStaffFromFirestore()
+                    getLocations(),
+                    getServices(),
+                    getStaff()
                 ]);
                 setLocations(fetchedLocations);
                 setServices(fetchedServices);

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Loader2, Search, Phone, Calendar, Clock, User as UserIcon, PoundSterling, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
-import { getBookingsByPhoneFromFirestore } from '@/lib/firestore';
+import { getBookingsByPhone } from '@/lib/data';
 
 export default function MyVisitsPage() {
     const [phone, setPhone] = React.useState('');
@@ -27,7 +27,7 @@ export default function MyVisitsPage() {
         setSearched(true);
         setError(null);
         try {
-            const result = await getBookingsByPhoneFromFirestore(phone);
+            const result = await getBookingsByPhone(phone);
             setBookings(result);
         } catch (err) {
             setError('Could not fetch booking history. Please try again.');

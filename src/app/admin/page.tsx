@@ -2,23 +2,24 @@
 'use client';
 
 import * as React from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { AdminLoginForm } from '@/components/admin-login-form';
 import { AdminDashboard } from '@/components/admin-dashboard';
 import { useAdmin } from '@/contexts/AdminContext';
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function AdminPage() {
-    const { adminUser, loading } = useAdmin();
-    const [user, setUser] = React.useState(auth.currentUser);
+    const { adminUser, loading, getSession } = useAdmin();
+    const router = useRouter();
 
     React.useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-        });
-        return () => unsubscribe();
-    }, []);
+        const session = getSession();
+        if (session.loggedIn && session.user) {
+            // Already logged in, do nothing, dashboard will render
+        } else {
+            // Not logged in
+        }
+    }, [adminUser, router, getSession]);
 
     if (loading) {
         return (
@@ -28,8 +29,8 @@ export default function AdminPage() {
         );
     }
     
-    if (adminUser && user) {
-        return <AdminDashboard user={user} adminUser={adminUser} />;
+    if (adminUser) {
+        return <AdminDashboard user={adminUser} adminUser={adminUser} />;
     }
 
     return <AdminLoginForm />;

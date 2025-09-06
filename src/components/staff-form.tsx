@@ -4,10 +4,6 @@ import * as React from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { z } from 'zod';
-import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
-import { app as mainApp, firebaseConfig } from '@/lib/firebase';
-import { initializeApp, getApp, deleteApp } from 'firebase/app';
-
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as FormDesc } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { setStaffRecord, updateStaff } from '@/lib/firestore';
+import { addStaff, updateStaff } from '@/lib/data';
 import { StaffFormSchema, type Staff, type Location, WorkingHoursSchema, type AdminUser } from '@/lib/types';
 import { Loader2, User, Info, UploadCloud, UserPlus, Link2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -245,10 +241,9 @@ export function StaffForm({ isOpen, setIsOpen, staffMember, locations, admins, a
             
             if (staffMember) { // --- UPDATE PATH ---
                 let finalImageUrl = staffMember.imageUrl || '';
-                // The uploadStaffImage function was removed, so this logic is commented out.
-                // if (imageFile) {
-                //     finalImageUrl = await uploadStaffImage(staffMember.id, imageFile);
-                // }
+                if (imageFile) {
+                    finalImageUrl = URL.createObjectURL(imageFile);
+                }
 
                 const submissionData: Partial<Staff> = {
                     name: data.name,
@@ -266,49 +261,23 @@ export function StaffForm({ isOpen, setIsOpen, staffMember, locations, admins, a
             } else { // --- CREATE PATH ---
                  
                 let uid = data.id; // UID might be pre-filled if linking an admin
+                let imageUrl = '';
+                if (imageFile) {
+                    imageUrl = URL.createObjectURL(imageFile);
+                }
                 
-                // If there's no UID, it's a new user, so create auth entry.
+                // If there's no UID, it's a new user, so create a new ID.
                 if (!uid) {
                     if (!data.email || !data.password) {
                         toast({ title: "Validation Error", description: "Email and a temporary password are required for new staff members.", variant: "destructive" });
                         setIsSubmitting(false);
                         return;
                     }
-                    const tempAppName = `temp-user-creation-${Date.now()}`;
-                    const tempApp = initializeApp(firebaseConfig, tempAppName);
-                    const tempAuth = getAuth(tempApp);
-                    try {
-                        const userCredential = await createUserWithEmailAndPassword(tempAuth, data.email, data.password);
-                        uid = userCredential.user.uid;
-                    } catch (error) {
-                        if (error instanceof Error && (error as any).code === 'auth/email-already-in-use') {
-                             toast({
-                                title: 'Email Already In Use',
-                                description: "This email is already registered. If they are an admin, please use the 'Link to Existing Admin' option.",
-                                variant: 'destructive',
-                            });
-                            setIsSubmitting(false);
-                            return;
-                        }
-                        throw error; // re-throw other errors
-                    } finally {
-                         await deleteApp(tempApp);
-                    }
+                    uid = `staff_${Date.now()}`;
                 }
-                
-                if (!uid) {
-                    toast({ title: 'Error', description: 'Could not determine user ID for staff member.', variant: 'destructive' });
-                    setIsSubmitting(false);
-                    return;
-                }
-
-                let imageUrl = '';
-                // The uploadStaffImage function was removed, so this logic is commented out.
-                // if (imageFile) {
-                //     imageUrl = await uploadStaffImage(uid, imageFile);
-                // }
-                
-                await setStaffRecord(uid, {
+                                
+                await addStaff({
+                    id: uid,
                     name: data.name,
                     specialization: data.specialization || '',
                     locationId: data.locationId,
@@ -517,7 +486,7 @@ export function StaffForm({ isOpen, setIsOpen, staffMember, locations, admins, a
                                         )}
                                         {(!isCreating || isLinkingAdmin) && (
                                             <FormDesc className="text-xs">
-                                                The login email cannot be changed. To change a password, the staff member must use the "Forgot Password" link on the Staff Login page.
+                                                The login email cannot be changed. Password changes are simulated in this dummy version.
                                             </FormDesc>
                                         )}
                                     </div>

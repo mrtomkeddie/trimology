@@ -2,18 +2,16 @@
 'use client';
 
 import * as React from 'react';
-import { getAdminsFromFirestore, getLocationsFromFirestore, getStaffFromFirestore } from "@/lib/firestore";
+import { getAdmins, getLocations, getStaff } from "@/lib/data";
 import { AdminsList } from "@/components/admins-list";
 import { ArrowLeft, Loader2, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { AdminUser, Location, Staff } from '@/lib/types';
 import { useAdmin } from '@/contexts/AdminContext';
-import { useRouter } from 'next/navigation';
 
 export default function ManageAdminsPage() {
     const { adminUser } = useAdmin();
-    const router = useRouter();
     const [admins, setAdmins] = React.useState<AdminUser[]>([]);
     const [staff, setStaff] = React.useState<Staff[]>([]);
     const [locations, setLocations] = React.useState<Location[]>([]);
@@ -26,9 +24,9 @@ export default function ManageAdminsPage() {
         setError(null);
         try {
             const [fetchedAdmins, fetchedLocations, fetchedStaff] = await Promise.all([
-                getAdminsFromFirestore(adminUser.locationId),
-                getLocationsFromFirestore(adminUser.locationId),
-                getStaffFromFirestore(adminUser.locationId)
+                getAdmins(adminUser.locationId),
+                getLocations(adminUser.locationId),
+                getStaff(adminUser.locationId)
             ]);
             setAdmins(fetchedAdmins);
             setLocations(fetchedLocations);

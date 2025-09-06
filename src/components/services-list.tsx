@@ -5,7 +5,7 @@ import type { Service, Location } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ServiceForm } from './service-form';
-import { deleteService } from '@/lib/firestore';
+import { deleteService } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -115,7 +115,7 @@ export function ServicesList({ services, locations, onServicesChanged }: Service
                     <Info className="h-4 w-4" />
                     <AlertTitle>No Locations Found</AlertTitle>
                     <AlertDescription>
-                        You must add a location in the 'Manage Locations' section before you can create a service.
+                        You must add a location before you can create a service.
                     </AlertDescription>
                 </Alert>
             )}

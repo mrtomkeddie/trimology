@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { getServicesFromFirestore, getLocationsFromFirestore } from "@/lib/firestore";
+import { getServices, getLocations } from "@/lib/data";
 import { ServicesList } from "@/components/services-list";
 import { ArrowLeft, Loader2, ShieldAlert } from "lucide-react";
 import Link from "next/link";
@@ -25,8 +25,8 @@ export default function ManageServicesPage() {
         setError(null);
         try {
             const [fetchedServices, fetchedLocations] = await Promise.all([
-               getServicesFromFirestore(adminUser.locationId),
-               getLocationsFromFirestore(adminUser.locationId),
+               getServices(adminUser.locationId),
+               getLocations(adminUser.locationId),
            ]);
            setServices(fetchedServices);
            setLocations(fetchedLocations);
