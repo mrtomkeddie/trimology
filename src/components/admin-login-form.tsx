@@ -45,7 +45,7 @@ export function AdminLoginForm() {
             // In a dummy data setup, we don't check the password.
             // A real implementation would verify the password hash here.
             login(adminUser);
-            router.push('/admin');
+            // The redirection is now handled inside the login function in the layout
         } else {
             toast({
                 title: 'Login Failed',

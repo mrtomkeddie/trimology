@@ -6,48 +6,45 @@ import { Loader2, ShieldAlert } from 'lucide-react';
 import { AdminContext } from '@/contexts/AdminContext';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { usePathname } from 'next/navigation';
-import { getAdminUserByEmail } from '@/lib/data';
+import { usePathname, useRouter } from 'next/navigation';
 
-// Store session in memory for simplicity
+// This is a simple in-memory session store.
+// In a real app, this would be managed by a library like next-auth or by httpOnly cookies.
 let memorySession: { user: AdminUser | null, loggedIn: boolean } = { user: null, loggedIn: false };
 
-export const login = (user: AdminUser) => {
-    memorySession = { user, loggedIn: true };
-};
-
-export const logout = () => {
-    memorySession = { user: null, loggedIn: false };
-};
-
-export const getSession = () => memorySession;
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [adminUser, setAdminUser] = React.useState<AdminUser | null>(null);
+  const [adminUser, setAdminUser] = React.useState<AdminUser | null>(memorySession.user);
   const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const router = useRouter();
   const pathname = usePathname();
 
-  React.useEffect(() => {
-    const session = getSession();
-    if (session.loggedIn && session.user) {
-        setAdminUser(session.user);
+  const login = (user: AdminUser) => {
+    memorySession = { user, loggedIn: true };
+    setAdminUser(user);
+    if (user.email.includes('staff')) {
+        router.push('/staff/my-schedule');
     } else {
-        setAdminUser(null);
+        router.push('/admin');
     }
+  };
+
+  const logout = () => {
+    memorySession = { user: null, loggedIn: false };
+    setAdminUser(null);
+    router.push('/');
+  };
+
+  const getSession = () => memorySession;
+
+  React.useEffect(() => {
+    setAdminUser(memorySession.user);
     setLoading(false);
   }, [pathname]);
 
   const contextValue = { adminUser, loading, login, logout, getSession };
 
-  // Allow access to login page even if not authenticated
-  if (pathname === '/admin' || pathname === '/staff/login') {
-      return (
-          <AdminContext.Provider value={contextValue}>
-              {children}
-          </AdminContext.Provider>
-      );
-  }
+  // Allow access to login pages even if not authenticated
+  const isLoginPage = pathname === '/admin' || pathname === '/staff/login';
 
   if (loading) {
     return (
@@ -57,7 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!adminUser) {
+  if (!adminUser && !isLoginPage) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-center p-4">
         <div>
