@@ -49,7 +49,7 @@ export function StaffLoginForm() {
               locationId: staffUser.locationId,
               locationName: staffUser.locationName,
           });
-          router.push('/my-schedule');
+          router.push('/staff/my-schedule');
       } else {
         toast({
             title: 'Login Failed',
