@@ -1,6 +1,5 @@
 
 import type { Service, Staff, Location, AdminUser, Booking, ClientLoyalty, NewBooking } from './types';
-import { revalidatePath } from 'next/cache';
 
 // --- DUMMY DATA STORE ---
 // We use a singleton pattern to simulate a database in memory.
@@ -75,15 +74,12 @@ const createDataStore = () => {
         addLocation: async (data: Omit<Location, 'id'>) => {
             const newLocation = { id: `loc_${Date.now()}`, ...data };
             DUMMY_LOCATIONS.push(newLocation);
-            revalidatePath('/admin/locations');
         },
         updateLocation: async (id: string, data: Partial<Location>) => {
             DUMMY_LOCATIONS = DUMMY_LOCATIONS.map(l => l.id === id ? { ...l, ...data } : l);
-            revalidatePath('/admin/locations');
         },
         deleteLocation: async (id: string) => {
             DUMMY_LOCATIONS = DUMMY_LOCATIONS.filter(l => l.id !== id);
-            revalidatePath('/admin/locations');
         },
 
         // Services
@@ -94,18 +90,12 @@ const createDataStore = () => {
         addService: async (data: Omit<Service, 'id'>) => {
             const newService = { id: `serv_${Date.now()}`, ...data };
             DUMMY_SERVICES.push(newService);
-            revalidatePath('/admin/services');
-            revalidatePath('/');
         },
         updateService: async (id: string, data: Partial<Service>) => {
             DUMMY_SERVICES = DUMMY_SERVICES.map(s => s.id === id ? { ...s, ...data } : s);
-            revalidatePath('/admin/services');
-            revalidatePath('/');
         },
         deleteService: async (id: string) => {
             DUMMY_SERVICES = DUMMY_SERVICES.filter(s => s.id !== id);
-            revalidatePath('/admin/services');
-            revalidatePath('/');
         },
 
         // Staff
@@ -116,18 +106,12 @@ const createDataStore = () => {
         getStaffByEmail: async (email: string) => DUMMY_STAFF.find(s => s.email === email) || null,
         addStaff: async (data: Staff) => {
             DUMMY_STAFF.push(data);
-            revalidatePath('/admin/staff');
-            revalidatePath('/');
         },
         updateStaff: async (id: string, data: Partial<Staff>) => {
             DUMMY_STAFF = DUMMY_STAFF.map(s => s.id === id ? { ...s, ...data } : s);
-            revalidatePath('/admin/staff');
-            revalidatePath('/');
         },
         deleteStaff: async (id: string) => {
             DUMMY_STAFF = DUMMY_STAFF.filter(s => s.id !== id);
-            revalidatePath('/admin/staff');
-            revalidatePath('/');
         },
         
         // Admins
@@ -138,15 +122,12 @@ const createDataStore = () => {
         getAdminUserByEmail: async (email: string) => DUMMY_ADMIN_USERS.find(u => u.email === email) || null,
         addAdmin: async (data: AdminUser) => {
             DUMMY_ADMIN_USERS.push(data);
-            revalidatePath('/admin/admins');
         },
         updateAdmin: async (id: string, data: Partial<AdminUser>) => {
             DUMMY_ADMIN_USERS = DUMMY_ADMIN_USERS.map(a => a.id === id ? { ...a, ...data } : a);
-            revalidatePath('/admin/admins');
         },
         deleteAdmin: async (id: string) => {
             DUMMY_ADMIN_USERS = DUMMY_ADMIN_USERS.filter(a => a.id !== id);
-            revalidatePath('/admin/admins');
         },
         
         // Bookings
@@ -160,13 +141,9 @@ const createDataStore = () => {
         addBooking: async (data: NewBooking) => {
             const newBooking = { id: `booking_${Date.now()}`, ...data };
             DUMMY_BOOKINGS.push(newBooking);
-            revalidatePath('/admin/bookings');
-            revalidatePath('/my-schedule');
         },
         deleteBooking: async (id: string) => {
             DUMMY_BOOKINGS = DUMMY_BOOKINGS.filter(b => b.id !== id);
-            revalidatePath('/admin/bookings');
-            revalidatePath('/my-schedule');
         },
 
         // Client Loyalty
