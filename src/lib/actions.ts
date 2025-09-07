@@ -45,6 +45,13 @@ async function getIndividualStaffTimes(
     let potentialSlotStart = workDayStart;
     const now = new Date();
 
+    // If checking for today, start from the next available 15-minute slot
+    if (isSameDay(preferredDate, now) && isAfter(now, workDayStart)) {
+         const roundedUpNow = new Date(Math.ceil(now.getTime() / (15 * 60 * 1000)) * (15 * 60 * 1000));
+         potentialSlotStart = isAfter(roundedUpNow, workDayStart) ? roundedUpNow : workDayStart;
+    }
+
+
     while (isBefore(potentialSlotStart, workDayEnd)) {
         const potentialSlotEnd = addMinutes(potentialSlotStart, serviceDuration);
 
@@ -177,8 +184,6 @@ export async function createBooking(bookingData: BookingData) {
 
     await addBookingToDummyData(newBooking);
 
-    console.log("New booking added to dummy data store:", newBooking);
-
     return { success: true };
 }
 
@@ -243,24 +248,26 @@ export async function getUnavailableDays(month: Date, serviceId: string, staffId
 
         while (currentDay <= monthEnd) {
             let isDayAvailable = false;
-            const currentDayStr = format(currentDay, 'yyyy-MM-dd');
             
+            // Check each staff member to see if ANY have availability on this day
             for (const staffMember of staffToCheck) {
+                 if (!staffMember.workingHours) continue;
                 const dayOfWeek = dayMap[getDay(currentDay)];
-                const dayHours = staffMember.workingHours?.[dayOfWeek];
+                const dayHours = staffMember.workingHours[dayOfWeek];
 
-                if (!dayHours || dayHours === 'off') continue;
+                if (!dayHours || dayHours === 'off') continue; // Staff is off this day
 
                 const workDayStart = parse(dayHours.start, 'HH:mm', currentDay);
                 const workDayEnd = parse(dayHours.end, 'HH:mm', currentDay);
                 
-                const staffBookingsForDay = bookingsByDayAndStaff[currentDayStr]?.[staffMember.id] || [];
+                const staffBookingsForDay = bookingsByDayAndStaff[format(currentDay, 'yyyy-MM-dd')]?.[staffMember.id] || [];
                 
                 let potentialSlotStart = workDayStart;
-                const now = new Date();
+                 const now = new Date();
                 
                  if (isSameDay(currentDay, today)) {
-                    potentialSlotStart = isBefore(potentialSlotStart, now) ? parse(format(addMinutes(now, 15 - now.getMinutes() % 15), 'HH:mm'), 'HH:mm', currentDay) : potentialSlotStart;
+                    const roundedUpNow = new Date(Math.ceil(now.getTime() / (15 * 60 * 1000)) * (15 * 60 * 1000));
+                    potentialSlotStart = isAfter(roundedUpNow, workDayStart) ? roundedUpNow : workDayStart;
                 }
 
                 while (isBefore(potentialSlotStart, workDayEnd)) {
@@ -270,12 +277,12 @@ export async function getUnavailableDays(month: Date, serviceId: string, staffId
                     const hasConflict = hasConflictWithFetchedBookings(staffBookingsForDay, potentialSlotStart, potentialSlotEnd);
 
                     if (!hasConflict) {
-                        isDayAvailable = true;
-                        break;
+                        isDayAvailable = true; // Found at least one slot for this staff member
+                        break; // Exit inner while loop
                     }
                     potentialSlotStart = addMinutes(potentialSlotStart, 15);
                 }
-                if (isDayAvailable) break;
+                if (isDayAvailable) break; // Exit outer for loop, since we found a slot for the day
             }
 
             if (!isDayAvailable) {

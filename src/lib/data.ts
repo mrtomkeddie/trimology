@@ -42,7 +42,7 @@ const createDataStore = () => {
         workingHours: { monday: { start: '09:00', end: '17:00' }, tuesday: { start: '09:00', end: '17:00' }, wednesday: { start: '09:00', end: '17:00' }, thursday: { start: '09:00', end: '17:00' }, friday: { start: '09:00', end: '17:00' }, saturday: 'off', sunday: 'off' },
       },
       {
-        id: 'super_admin_user', name: 'Samantha (Owner)', specialization: 'Super Admin', locationId: 'superadmin', locationName: 'All Locations', email: 'superadmin@example.com',
+        id: 'super_admin_user', name: 'Samantha (Owner)', specialization: 'Super Admin', locationId: 'loc_1', locationName: 'Downtown Barbers', email: 'superadmin@example.com',
         imageUrl: `https://i.pravatar.cc/100?u=super_admin_user`,
         workingHours: { monday: { start: '09:00', end: '17:00' }, tuesday: { start: '09:00', end: '17:00' }, wednesday: { start: '09:00', end: '17:00' }, thursday: { start: '09:00', end: '17:00' }, friday: { start: '09:00', end: '17:00' }, saturday: 'off', sunday: 'off' },
       }
