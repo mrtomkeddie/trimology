@@ -1,8 +1,9 @@
+
 'use client';
 
 import * as React from 'react';
 import { getAllBookings, getLocations, getStaff } from "@/lib/data";
-import { ArrowLeft, Loader2, ShieldAlert, DollarSign, CalendarCheck2, Users, LineChart, Star } from "lucide-react";
+import { ArrowLeft, Loader2, ShieldAlert, DollarSign, CalendarCheck2, Users, LineChart, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Booking, Location, Staff } from '@/lib/types';
@@ -10,8 +11,9 @@ import { useAdmin } from '@/contexts/AdminContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RevenueChart } from '@/components/revenue-chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { subDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, format, addMonths, subMonths, isSameMonth } from 'date-fns';
 import { StaffPerformanceChart } from '@/components/staff-performance-chart';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type StaffPerformanceData = {
     name: string;
@@ -34,11 +36,13 @@ export default function AnalyticsPage() {
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
     const [selectedLocation, setSelectedLocation] = React.useState<string>('all');
+    const [timeframe, setTimeframe] = React.useState<'7days' | 'monthly'>('7days');
+    const [currentMonth, setCurrentMonth] = React.useState(new Date());
 
     const fetchData = React.useCallback(async () => {
         if (!adminUser) return;
         setLoading(true);
-        setError(null);
+setError(null);
         try {
             const [fetchedBookings, fetchedLocations, fetchedStaff] = await Promise.all([
                 getAllBookings(adminUser.locationId),
@@ -62,24 +66,23 @@ export default function AnalyticsPage() {
 
     const analyticsData = React.useMemo<AnalyticsData>(() => {
         const today = new Date();
-        const last7Days = { start: startOfDay(subDays(today, 6)), end: endOfDay(today) };
+        let interval: Interval;
+
+        if (timeframe === '7days') {
+            interval = { start: startOfDay(subDays(today, 6)), end: endOfDay(today) };
+        } else {
+            interval = { start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) };
+        }
         
         const filteredBookings = allBookings.filter(b => 
             (selectedLocation === 'all' || b.locationId === selectedLocation) &&
-            isWithinInterval(new Date(b.bookingTimestamp), last7Days)
+            isWithinInterval(new Date(b.bookingTimestamp), interval)
         );
 
         const totalRevenue = filteredBookings.reduce((acc, b) => acc + b.servicePrice, 0);
         const totalBookings = filteredBookings.length;
         const uniqueCustomers = new Set(filteredBookings.map(b => b.clientPhone)).size;
-
-        const dailyRevenue: { [key: string]: number } = {};
-        for (let i = 0; i < 7; i++) {
-            const date = startOfDay(subDays(today, i));
-            const dateString = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            dailyRevenue[dateString] = 0;
-        }
-
+        
         const staffBookingCounts: Record<string, number> = {};
         staff.forEach(s => {
              if (selectedLocation === 'all' || s.locationId === selectedLocation) {
@@ -87,10 +90,17 @@ export default function AnalyticsPage() {
             }
         });
 
+        const dailyRevenue: { [key: string]: number } = {};
+        const daysInInterval = eachDayOfInterval(interval);
+
+        daysInInterval.forEach(day => {
+            const dateString = format(day, 'MMM d');
+            dailyRevenue[dateString] = 0;
+        });
 
         filteredBookings.forEach(booking => {
             const date = new Date(booking.bookingTimestamp);
-            const dateString = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const dateString = format(date, 'MMM d');
             if (dailyRevenue.hasOwnProperty(dateString)) {
                 dailyRevenue[dateString] += booking.servicePrice;
             }
@@ -101,14 +111,24 @@ export default function AnalyticsPage() {
 
         const chartData = Object.entries(dailyRevenue)
             .map(([date, revenue]) => ({ date, revenue }))
-            .reverse();
         
         const staffPerformance = Object.entries(staffBookingCounts)
             .map(([name, bookings]) => ({ name, bookings }))
             .sort((a, b) => b.bookings - a.bookings);
         
         return { totalRevenue, totalBookings, uniqueCustomers, chartData, staffPerformance };
-    }, [allBookings, selectedLocation, staff]);
+    }, [allBookings, selectedLocation, staff, timeframe, currentMonth]);
+
+    const handlePreviousMonth = () => {
+        setCurrentMonth(prev => subMonths(prev, 1));
+    };
+
+    const handleNextMonth = () => {
+        setCurrentMonth(prev => addMonths(prev, 1));
+    };
+
+    const isNextMonthDisabled = isSameMonth(currentMonth, new Date());
+
 
     if (loading) {
         return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
@@ -156,9 +176,24 @@ export default function AnalyticsPage() {
                 )}
             </header>
             <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
-                <div className="text-center">
-                    <h2 className="text-2xl font-bold">Last 7 Days Performance</h2>
-                    <p className="text-muted-foreground">Metrics are calculated based on bookings within the last 7 days.</p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
+                    <Tabs value={timeframe} onValueChange={(value) => setTimeframe(value as '7days' | 'monthly')}>
+                        <TabsList>
+                            <TabsTrigger value="7days">Last 7 Days</TabsTrigger>
+                            <TabsTrigger value="monthly">Monthly</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                    {timeframe === 'monthly' && (
+                        <div className="flex items-center gap-2 p-1 bg-muted rounded-md">
+                            <Button variant="ghost" size="icon" onClick={handlePreviousMonth}>
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <span className="font-semibold w-32 text-center">{format(currentMonth, 'MMMM yyyy')}</span>
+                            <Button variant="ghost" size="icon" onClick={handleNextMonth} disabled={isNextMonthDisabled}>
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
@@ -193,7 +228,10 @@ export default function AnalyticsPage() {
                  <div className="grid gap-4 lg:grid-cols-2">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5" /> Daily Revenue</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <LineChart className="h-5 w-5" /> 
+                                {timeframe === '7days' ? 'Daily Revenue' : 'Revenue for ' + format(currentMonth, 'MMMM')}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="pl-2">
                             <RevenueChart data={analyticsData.chartData} />
@@ -213,3 +251,5 @@ export default function AnalyticsPage() {
         </div>
     );
 }
+
+    
