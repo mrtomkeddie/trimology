@@ -14,57 +14,72 @@ import { useAdmin } from '@/contexts/AdminContext';
 
 export default function MySchedulePage() {
     const router = useRouter();
-    const { adminUser, logout } = useAdmin();
-    const [user, setUser] = React.useState<AdminUser | null>(null);
+    const { adminUser, loading: isAdminLoading, logout } = useAdmin();
     const [staff, setStaff] = React.useState<Staff | null>(null);
     const [bookings, setBookings] = React.useState<Booking[]>([]);
-    const [loading, setLoading] = React.useState(true);
+    const [loadingData, setLoadingData] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
 
     React.useEffect(() => {
-        if (adminUser) {
-            setUser(adminUser);
-            const fetchData = async () => {
-                try {
-                    const staffMember = await getStaffByEmail(adminUser.email);
-                    if (staffMember) {
-                        setStaff(staffMember);
-                        const staffBookings = await getBookingsByStaffId(staffMember.id);
-                        const upcomingBookings = staffBookings
-                            .filter(b => new Date(b.bookingTimestamp) >= new Date())
-                            .sort((a, b) => new Date(a.bookingTimestamp).getTime() - new Date(b.bookingTimestamp).getTime());
-                        setBookings(upcomingBookings);
-                    } else {
-                        setError("Could not find your staff profile. Please contact an admin.");
-                    }
-                } catch (e) {
-                    setError("Failed to fetch your schedule.");
-                    console.error(e);
-                } finally {
-                    setLoading(false);
+        if (!isAdminLoading) {
+            if (adminUser) {
+                 // Ensure the logged in user is a staff member
+                if (!adminUser.email.includes('staff')) {
+                    router.push('/admin');
+                    return;
                 }
-            };
-            fetchData();
-        } else {
-            router.push('/staff/login');
+
+                const fetchData = async () => {
+                    setLoadingData(true);
+                    try {
+                        const staffMember = await getStaffByEmail(adminUser.email);
+                        if (staffMember) {
+                            setStaff(staffMember);
+                            const staffBookings = await getBookingsByStaffId(staffMember.id);
+                            const upcomingBookings = staffBookings
+                                .filter(b => new Date(b.bookingTimestamp) >= new Date())
+                                .sort((a, b) => new Date(a.bookingTimestamp).getTime() - new Date(b.bookingTimestamp).getTime());
+                            setBookings(upcomingBookings);
+                        } else {
+                            setError("Could not find your staff profile. Please contact an admin.");
+                        }
+                    } catch (e) {
+                        setError("Failed to fetch your schedule.");
+                        console.error(e);
+                    } finally {
+                        setLoadingData(false);
+                    }
+                };
+                fetchData();
+            } else {
+                // If no user and not loading, redirect to login
+                router.push('/staff/login');
+            }
         }
-    }, [adminUser, router]);
+    }, [adminUser, isAdminLoading, router]);
 
     const handleLogout = async () => {
         logout();
-        router.push('/');
+        // logout() already redirects to '/'
     };
     
-    if (loading) {
+    const isLoading = isAdminLoading || loadingData;
+
+    if (isLoading || !staff) {
         return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
     }
     
     if (error) {
-        return <div>Error: {error}</div>;
-    }
-
-    if (!staff) {
-        return <div>No staff profile found for the logged-in user.</div>
+        // A simple error display, could be enhanced with a component
+        return (
+            <div className="flex h-screen w-full items-center justify-center text-center p-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-destructive mb-2">Error</h1>
+                    <p className="text-muted-foreground">{error}</p>
+                    <Button onClick={() => router.push('/')} className="mt-4">Return Home</Button>
+                </div>
+            </div>
+        );
     }
 
     return (

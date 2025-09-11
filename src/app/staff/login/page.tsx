@@ -13,11 +13,19 @@ export default function StaffLoginPage() {
 
   React.useEffect(() => {
     if (!loading && adminUser) {
-        router.push('/my-schedule');
+        // If a user is logged in, redirect them.
+        // If it's a staff member, send to schedule.
+        // If it's an admin, send to admin dashboard.
+        if (adminUser.email.includes('staff')) {
+            router.push('/staff/my-schedule');
+        } else {
+            router.push('/admin');
+        }
     }
   }, [adminUser, loading, router]);
   
-  if (loading) {
+  if (loading || adminUser) {
+    // Show loader while checking session or redirecting
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />

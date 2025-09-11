@@ -9,17 +9,16 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminPage() {
-    const { adminUser, loading, getSession } = useAdmin();
+    const { adminUser, loading } = useAdmin();
     const router = useRouter();
 
     React.useEffect(() => {
-        const session = getSession();
-        if (session.loggedIn && session.user) {
-            // Already logged in, do nothing, dashboard will render
-        } else {
-            // Not logged in
+        if (!loading && adminUser) {
+           if (adminUser.email.includes('staff')) {
+                router.push('/staff/my-schedule');
+           }
         }
-    }, [adminUser, router, getSession]);
+    }, [adminUser, loading, router]);
 
     if (loading) {
         return (
@@ -30,6 +29,10 @@ export default function AdminPage() {
     }
     
     if (adminUser) {
+        // Prevent staff from accessing the admin dashboard
+        if (adminUser.email.includes('staff')) {
+            return null; // or a loading indicator while redirecting
+        }
         return <AdminDashboard user={adminUser} adminUser={adminUser} />;
     }
 
