@@ -1,28 +1,36 @@
 'use client';
 
 import * as React from 'react';
-import { getAllBookings, getLocations } from "@/lib/data";
-import { ArrowLeft, Loader2, ShieldAlert, DollarSign, CalendarCheck2, Users, LineChart } from "lucide-react";
+import { getAllBookings, getLocations, getStaff } from "@/lib/data";
+import { ArrowLeft, Loader2, ShieldAlert, DollarSign, CalendarCheck2, Users, LineChart, Star } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import type { Booking, Location } from '@/lib/types';
+import type { Booking, Location, Staff } from '@/lib/types';
 import { useAdmin } from '@/contexts/AdminContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RevenueChart } from '@/components/revenue-chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { subDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { StaffPerformanceChart } from '@/components/staff-performance-chart';
+
+type StaffPerformanceData = {
+    name: string;
+    bookings: number;
+}
 
 type AnalyticsData = {
     totalRevenue: number;
     totalBookings: number;
     uniqueCustomers: number;
     chartData: { date: string; revenue: number }[];
+    staffPerformance: StaffPerformanceData[];
 }
 
 export default function AnalyticsPage() {
     const { adminUser } = useAdmin();
     const [allBookings, setAllBookings] = React.useState<Booking[]>([]);
     const [locations, setLocations] = React.useState<Location[]>([]);
+    const [staff, setStaff] = React.useState<Staff[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
     const [selectedLocation, setSelectedLocation] = React.useState<string>('all');
@@ -32,12 +40,14 @@ export default function AnalyticsPage() {
         setLoading(true);
         setError(null);
         try {
-            const [fetchedBookings, fetchedLocations] = await Promise.all([
+            const [fetchedBookings, fetchedLocations, fetchedStaff] = await Promise.all([
                 getAllBookings(adminUser.locationId),
                 getLocations(adminUser.locationId),
+                getStaff(adminUser.locationId),
             ]);
             setAllBookings(fetchedBookings);
             setLocations(fetchedLocations);
+            setStaff(fetchedStaff);
         } catch (e) {
             setError("Failed to fetch analytics data. Please try refreshing the page.");
             console.error(e);
@@ -70,11 +80,22 @@ export default function AnalyticsPage() {
             dailyRevenue[dateString] = 0;
         }
 
+        const staffBookingCounts: Record<string, number> = {};
+        staff.forEach(s => {
+             if (selectedLocation === 'all' || s.locationId === selectedLocation) {
+                staffBookingCounts[s.name] = 0;
+            }
+        });
+
+
         filteredBookings.forEach(booking => {
             const date = new Date(booking.bookingTimestamp);
             const dateString = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             if (dailyRevenue.hasOwnProperty(dateString)) {
                 dailyRevenue[dateString] += booking.servicePrice;
+            }
+            if (booking.staffName && staffBookingCounts.hasOwnProperty(booking.staffName)) {
+                staffBookingCounts[booking.staffName]++;
             }
         });
 
@@ -82,8 +103,12 @@ export default function AnalyticsPage() {
             .map(([date, revenue]) => ({ date, revenue }))
             .reverse();
         
-        return { totalRevenue, totalBookings, uniqueCustomers, chartData };
-    }, [allBookings, selectedLocation]);
+        const staffPerformance = Object.entries(staffBookingCounts)
+            .map(([name, bookings]) => ({ name, bookings }))
+            .sort((a, b) => b.bookings - a.bookings);
+        
+        return { totalRevenue, totalBookings, uniqueCustomers, chartData, staffPerformance };
+    }, [allBookings, selectedLocation, staff]);
 
     if (loading) {
         return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
@@ -165,15 +190,25 @@ export default function AnalyticsPage() {
                         </CardContent>
                     </Card>
                 </div>
+                 <div className="grid gap-4 lg:grid-cols-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5" /> Daily Revenue</CardTitle>
+                        </CardHeader>
+                        <CardContent className="pl-2">
+                            <RevenueChart data={analyticsData.chartData} />
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Star className="h-5 w-5" /> Top Staff by Bookings</CardTitle>
+                        </CardHeader>
+                        <CardContent className="pl-2">
+                           <StaffPerformanceChart data={analyticsData.staffPerformance} />
+                        </CardContent>
+                    </Card>
+                </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5" /> Daily Revenue (Last 7 Days)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <RevenueChart data={analyticsData.chartData} />
-                    </CardContent>
-                </Card>
             </main>
         </div>
     );
