@@ -17,13 +17,53 @@ const createDataStore = () => {
       { id: 'serv_5', name: 'Coloring', duration: 90, price: 75, locationId: 'loc_2', locationName: 'Uptown Cuts' },
     ];
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(10, 0, 0, 0);
+    const generatePastBookings = (): Booking[] => {
+        const bookings: Booking[] = [];
+        const staff = [
+            { id: 'staff_1', name: 'Alice', imageUrl: `https://i.pravatar.cc/100?u=staff_1` },
+            { id: 'staff_2', name: 'Bob', imageUrl: `https://i.pravatar.cc/100?u=staff_2` },
+        ];
+        const services = [
+             { id: 'serv_1', name: 'Classic Haircut', price: 30, duration: 45, locationId: 'loc_1', locationName: 'Downtown Barbers' },
+             { id: 'serv_2', name: 'Beard Trim', price: 15, duration: 20, locationId: 'loc_1', locationName: 'Downtown Barbers' },
+             { id: 'serv_4', name: 'Modern Fade', price: 40, duration: 60, locationId: 'loc_2', locationName: 'Uptown Cuts' },
+        ];
+        const clients = [
+            { name: 'John Doe', phone: '111-222-3333', email: 'john@doe.com' },
+            { name: 'Jane Smith', phone: '444-555-6666', email: 'jane@smith.com' },
+            { name: 'Peter Jones', phone: '777-888-9999', email: 'peter@jones.com' },
+        ];
 
-    const dayAfter = new Date();
-    dayAfter.setDate(dayAfter.getDate() + 2);
-    dayAfter.setHours(14, 30, 0, 0);
+        for (let i = 0; i < 20; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() - Math.floor(Math.random() * 7)); // Within the last week
+            date.setHours(9 + Math.floor(Math.random() * 8), Math.random() > 0.5 ? 30 : 0, 0, 0);
+
+            const service = services[Math.floor(Math.random() * services.length)];
+            const staffMember = staff[Math.floor(Math.random() * staff.length)];
+            const client = clients[Math.floor(Math.random() * clients.length)];
+
+            bookings.push({
+                id: `booking_past_${i}`,
+                locationId: service.locationId,
+                locationName: service.locationName,
+                serviceId: service.id,
+                serviceName: service.name,
+                servicePrice: service.price,
+                serviceDuration: service.duration,
+                staffId: staffMember.id,
+                staffName: staffMember.name,
+                staffImageUrl: staffMember.imageUrl,
+                bookingTimestamp: date.toISOString(),
+                clientName: client.name,
+                clientPhone: client.phone,
+                clientEmail: client.email,
+            });
+        }
+        return bookings;
+    }
+
+    let DUMMY_BOOKINGS: Booking[] = generatePastBookings();
 
     let DUMMY_STAFF: Staff[] = [
       {
@@ -53,21 +93,6 @@ const createDataStore = () => {
         { id: 'branch_admin_user', email: 'branchadmin@example.com', locationId: 'loc_2', locationName: 'Uptown Cuts' },
     ];
     
-    let DUMMY_BOOKINGS: Booking[] = [
-      { 
-        id: 'booking_1', locationId: 'loc_1', locationName: 'Downtown Barbers', serviceId: 'serv_1', serviceName: 'Classic Haircut', servicePrice: 30, serviceDuration: 45, 
-        staffId: 'staff_1', staffName: 'Alice', staffImageUrl: `https://i.pravatar.cc/100?u=staff_1`,
-        bookingTimestamp: tomorrow.toISOString(),
-        clientName: 'John Doe', clientPhone: '111-222-3333', clientEmail: 'john@doe.com',
-      },
-      { 
-        id: 'booking_2', locationId: 'loc_2', locationName: 'Uptown Cuts', serviceId: 'serv_4', serviceName: 'Modern Fade', servicePrice: 40, serviceDuration: 60,
-        staffId: 'staff_2', staffName: 'Bob', staffImageUrl: `https://i.pravatar.cc/100?u=staff_2`,
-        bookingTimestamp: dayAfter.toISOString(),
-        clientName: 'Jane Smith', clientPhone: '444-555-6666', clientEmail: 'jane@smith.com',
-      }
-    ];
-
     return {
         // Locations
         getLocations: async (id?: string) => id ? DUMMY_LOCATIONS.filter(l => l.id === id) : DUMMY_LOCATIONS.sort((a,b) => a.name.localeCompare(b.name)),
@@ -136,6 +161,10 @@ const createDataStore = () => {
              const bookings = locationId ? upcoming.filter(b => b.locationId === locationId) : upcoming;
              return bookings.sort((a,b) => new Date(a.bookingTimestamp).getTime() - new Date(b.bookingTimestamp).getTime());
         },
+        getAllBookings: async (locationId?: string) => {
+            const bookings = locationId ? DUMMY_BOOKINGS.filter(b => b.locationId === locationId) : DUMMY_BOOKINGS;
+            return bookings.sort((a,b) => new Date(a.bookingTimestamp).getTime() - new Date(b.bookingTimestamp).getTime());
+        },
         getBookingsByPhone: async (phone: string) => DUMMY_BOOKINGS.filter(b => b.clientPhone === phone).sort((a,b) => new Date(b.bookingTimestamp).getTime() - new Date(a.bookingTimestamp).getTime()),
         getBookingsByStaffId: async (staffId: string) => DUMMY_BOOKINGS.filter(b => b.staffId === staffId).sort((a,b) => new Date(b.bookingTimestamp).getTime() - new Date(a.bookingTimestamp).getTime()),
         addBooking: async (data: NewBooking) => {
@@ -190,6 +219,6 @@ export const {
     getServices, addService, updateService, deleteService,
     getStaff, getStaffByEmail, addStaff, updateStaff, deleteStaff,
     getAdmins, getAdminUserByEmail, addAdmin, updateAdmin, deleteAdmin,
-    getBookings, getBookingsByPhone, getBookingsByStaffId, addBooking, deleteBooking,
+    getBookings, getAllBookings, getBookingsByPhone, getBookingsByStaffId, addBooking, deleteBooking,
     getClientLoyaltyData
 } = dataStore;
