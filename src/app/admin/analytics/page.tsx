@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { getAllBookings, getLocations, getStaff } from "@/lib/data";
-import { ArrowLeft, Loader2, ShieldAlert, DollarSign, CalendarCheck2, Users, LineChart, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Loader2, ShieldAlert, DollarSign, CalendarCheck2, Users, LineChart, Star, ChevronLeft, ChevronRight, X, User, PoundSterling, Clock, Scissors } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Booking, Location, Staff } from '@/lib/types';
@@ -11,9 +11,12 @@ import { useAdmin } from '@/contexts/AdminContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RevenueChart } from '@/components/revenue-chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, format, addMonths, subMonths, isSameMonth } from 'date-fns';
+import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, format, addMonths, subMonths, isSameMonth, parse } from 'date-fns';
 import { StaffPerformanceChart } from '@/components/staff-performance-chart';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 type StaffPerformanceData = {
     name: string;
@@ -39,13 +42,15 @@ export default function AnalyticsPage() {
     const [timeframe, setTimeframe] = React.useState<'7days' | 'monthly'>('7days');
     const [currentMonth, setCurrentMonth] = React.useState(new Date());
 
+    const [detailViewDate, setDetailViewDate] = React.useState<string | null>(null);
+
     const fetchData = React.useCallback(async () => {
         if (!adminUser) return;
         setLoading(true);
-setError(null);
+        setError(null);
         try {
             const [fetchedBookings, fetchedLocations, fetchedStaff] = await Promise.all([
-                getAllBookings(adminUser.locationId),
+                getAllBookings(),
                 getLocations(adminUser.locationId),
                 getStaff(adminUser.locationId),
             ]);
@@ -126,6 +131,26 @@ setError(null);
     const handleNextMonth = () => {
         setCurrentMonth(prev => addMonths(prev, 1));
     };
+    
+    const onBarClick = (payload: any) => {
+        if (payload && payload.activePayload && payload.activePayload[0]) {
+            const dateStr = payload.activePayload[0].payload.date;
+            setDetailViewDate(dateStr);
+        }
+    };
+
+    const detailedBookings = React.useMemo(() => {
+        if (!detailViewDate) return [];
+
+        const year = format(currentMonth, 'yyyy');
+        const parsedDate = parse(`${detailViewDate} ${year}`, 'MMM d yyyy', new Date());
+
+        return allBookings.filter(b => 
+            isSameMonth(new Date(b.bookingTimestamp), currentMonth) &&
+            format(new Date(b.bookingTimestamp), 'MMM d') === detailViewDate &&
+            (selectedLocation === 'all' || b.locationId === selectedLocation)
+        ).sort((a,b) => new Date(a.bookingTimestamp).getTime() - new Date(b.bookingTimestamp).getTime());
+    }, [detailViewDate, allBookings, selectedLocation, currentMonth]);
 
     const isNextMonthDisabled = isSameMonth(currentMonth, new Date());
 
@@ -234,7 +259,7 @@ setError(null);
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="pl-2">
-                            <RevenueChart data={analyticsData.chartData} />
+                            <RevenueChart data={analyticsData.chartData} onBarClick={onBarClick} />
                         </CardContent>
                     </Card>
                      <Card>
@@ -248,8 +273,53 @@ setError(null);
                 </div>
 
             </main>
+             <Dialog open={!!detailViewDate} onOpenChange={() => setDetailViewDate(null)}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Booking Details for {detailViewDate}, {format(currentMonth, 'yyyy')}</DialogTitle>
+                        <DialogDescription>
+                            A detailed list of all bookings for the selected day.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <ScrollArea className="max-h-[60vh] pr-4">
+                        <div className="space-y-4 py-4">
+                            {detailedBookings.length > 0 ? detailedBookings.map((booking, index) => (
+                                <React.Fragment key={booking.id}>
+                                    <div className="flex items-start space-x-4">
+                                        <div className="flex-1 space-y-1">
+                                            <div className="flex justify-between items-center">
+                                                <p className="font-semibold leading-none">{booking.clientName}</p>
+                                                <div className="flex items-center text-lg font-bold text-primary">
+                                                    <PoundSterling className="mr-1 h-4 w-4" />
+                                                    {booking.servicePrice.toFixed(2)}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center text-sm text-muted-foreground">
+                                                <Clock className="mr-2 h-4 w-4" />
+                                                <span>{format(new Date(booking.bookingTimestamp), 'p')}</span>
+                                            </div>
+                                            <Separator className="my-2" />
+                                            <div className="flex items-center pt-1 text-sm">
+                                                <Scissors className="mr-2 h-4 w-4 text-muted-foreground" />
+                                                <span className="text-muted-foreground">Service:</span>
+                                                <span className="font-medium ml-2">{booking.serviceName}</span>
+                                            </div>
+                                            <div className="flex items-center pt-1 text-sm">
+                                                <User className="mr-2 h-4 w-4 text-muted-foreground" />
+                                                <span className="text-muted-foreground">Staff:</span>
+                                                <span className="font-medium ml-2">{booking.staffName}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {index < detailedBookings.length - 1 && <Separator />}
+                                </React.Fragment>
+                            )) : (
+                                <p className="text-center text-muted-foreground py-8">No bookings found for this day.</p>
+                            )}
+                        </div>
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
-
-    

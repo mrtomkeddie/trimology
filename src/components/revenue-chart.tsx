@@ -1,16 +1,18 @@
+
 "use client"
 
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
-import { Card } from "./ui/card"
 
 type RevenueChartProps = {
   data: { date: string, revenue: number }[]
+  onBarClick?: (payload: any) => void;
 }
 
-export function RevenueChart({ data }: RevenueChartProps) {
+export function RevenueChart({ data, onBarClick }: RevenueChartProps) {
+  const chartStyle = onBarClick ? { cursor: 'pointer' } : {};
   return (
     <ResponsiveContainer width="100%" height={350}>
-      <BarChart data={data}>
+      <BarChart data={data} onClick={onBarClick} style={chartStyle}>
         <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
         <XAxis
           dataKey="date"
