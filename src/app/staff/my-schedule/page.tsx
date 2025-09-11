@@ -21,46 +21,49 @@ export default function MySchedulePage() {
     const [error, setError] = React.useState<string | null>(null);
 
     React.useEffect(() => {
-        if (!isAdminLoading) {
-            if (adminUser) {
-                 // Ensure the logged in user is a staff member
-                if (!adminUser.email.includes('staff')) {
-                    router.push('/admin');
-                    return;
-                }
-
-                const fetchData = async () => {
-                    setLoadingData(true);
-                    try {
-                        const staffMember = await getStaffByEmail(adminUser.email);
-                        if (staffMember) {
-                            setStaff(staffMember);
-                            const staffBookings = await getBookingsByStaffId(staffMember.id);
-                            const upcomingBookings = staffBookings
-                                .filter(b => new Date(b.bookingTimestamp) >= new Date())
-                                .sort((a, b) => new Date(a.bookingTimestamp).getTime() - new Date(b.bookingTimestamp).getTime());
-                            setBookings(upcomingBookings);
-                        } else {
-                            setError("Could not find your staff profile. Please contact an admin.");
-                        }
-                    } catch (e) {
-                        setError("Failed to fetch your schedule.");
-                        console.error(e);
-                    } finally {
-                        setLoadingData(false);
-                    }
-                };
-                fetchData();
-            } else {
-                // If no user and not loading, redirect to login
-                router.push('/staff/login');
-            }
+        if (isAdminLoading) {
+            return; // Wait for the admin context to stop loading
         }
+
+        if (!adminUser) {
+            // If no user and not loading, redirect to login
+            router.push('/staff/login');
+            return;
+        }
+
+        // Ensure the logged in user is a staff member
+        if (!adminUser.email.includes('staff')) {
+            router.push('/admin');
+            return;
+        }
+
+        const fetchData = async () => {
+            setLoadingData(true);
+            try {
+                const staffMember = await getStaffByEmail(adminUser.email);
+                if (staffMember) {
+                    setStaff(staffMember);
+                    const staffBookings = await getBookingsByStaffId(staffMember.id);
+                    const upcomingBookings = staffBookings
+                        .filter(b => new Date(b.bookingTimestamp) >= new Date())
+                        .sort((a, b) => new Date(a.bookingTimestamp).getTime() - new Date(b.bookingTimestamp).getTime());
+                    setBookings(upcomingBookings);
+                } else {
+                    setError("Could not find your staff profile. Please contact an admin.");
+                }
+            } catch (e) {
+                setError("Failed to fetch your schedule.");
+                console.error(e);
+            } finally {
+                setLoadingData(false);
+            }
+        };
+        fetchData();
+
     }, [adminUser, isAdminLoading, router]);
 
     const handleLogout = async () => {
         logout();
-        // logout() already redirects to '/'
     };
     
     const isLoading = isAdminLoading || loadingData;
@@ -70,7 +73,6 @@ export default function MySchedulePage() {
     }
     
     if (error) {
-        // A simple error display, could be enhanced with a component
         return (
             <div className="flex h-screen w-full items-center justify-center text-center p-4">
                 <div>

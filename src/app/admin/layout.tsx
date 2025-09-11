@@ -10,7 +10,7 @@ import { usePathname, useRouter } from 'next/navigation';
 
 const SESSION_KEY = 'trimology.session';
 
-function getInitialSession(): { user: AdminUser | null, loggedIn: boolean } {
+function getSessionFromStorage(): { user: AdminUser | null, loggedIn: boolean } {
     if (typeof window === 'undefined') {
         return { user: null, loggedIn: false };
     }
@@ -35,7 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname();
 
     React.useEffect(() => {
-        const session = getInitialSession();
+        const session = getSessionFromStorage();
         setAdminUser(session.user);
         setLoading(false);
     }, []);
@@ -68,14 +68,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
 
     const getSession = () => {
-        return getInitialSession();
+        return getSessionFromStorage();
     };
     
     const contextValue = { adminUser, loading, login, logout, getSession };
 
     // Allow access to login pages even if not authenticated
     const isLoginPage = pathname === '/admin' || pathname === '/staff/login';
-    const isMySchedulePage = pathname === '/staff/my-schedule';
 
     if (loading) {
         return (
@@ -86,12 +85,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     if (!adminUser && !isLoginPage) {
-        // Special case for my-schedule page to prevent flash of access denied
-        if (isMySchedulePage) {
-             // Let the page handle the redirect, as it has more context
-             return <AdminContext.Provider value={contextValue}>{children}</AdminContext.Provider>;
-        }
-
         return (
             <div className="flex min-h-screen items-center justify-center bg-background text-center p-4">
                 <div>
