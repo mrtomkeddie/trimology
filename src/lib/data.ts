@@ -1,5 +1,6 @@
 
 import type { Service, Staff, Location, AdminUser, Booking, ClientLoyalty, NewBooking } from './types';
+import { addDays, formatISO } from 'date-fns';
 
 // --- DUMMY DATA STORE ---
 // We use a singleton pattern to simulate a database in memory.
@@ -63,7 +64,28 @@ const createDataStore = () => {
         return bookings;
     }
 
-    let DUMMY_BOOKINGS: Booking[] = generatePastBookings();
+    const futureDate = addDays(new Date(), 5);
+    futureDate.setHours(14, 0, 0, 0); // Set time to 2:00 PM
+
+    let DUMMY_BOOKINGS: Booking[] = [
+        ...generatePastBookings(),
+        {
+            id: 'booking_future_1',
+            locationId: 'loc_1',
+            locationName: 'Downtown Barbers',
+            serviceId: 'serv_1',
+            serviceName: 'Classic Haircut',
+            servicePrice: 30,
+            serviceDuration: 45,
+            staffId: 'staff_1',
+            staffName: 'Alice',
+            staffImageUrl: `https://i.pravatar.cc/100?u=staff_1`,
+            bookingTimestamp: formatISO(futureDate),
+            clientName: 'John Doe',
+            clientPhone: '111-222-3333',
+            clientEmail: 'john@doe.com',
+        },
+    ];
 
     let DUMMY_STAFF: Staff[] = [
       {
