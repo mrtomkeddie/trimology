@@ -1,6 +1,6 @@
 
 import type { Service, Staff, Location, AdminUser, Booking, ClientLoyalty, NewBooking } from './types';
-import { addDays, formatISO } from 'date-fns';
+import { addDays, formatISO, subDays } from 'date-fns';
 
 // --- DUMMY DATA STORE ---
 // We use a singleton pattern to simulate a database in memory.
@@ -8,6 +8,8 @@ const createDataStore = () => {
     let DUMMY_LOCATIONS: Location[] = [
       { id: 'loc_1', name: 'Downtown Barbers', address: '123 Main St, Anytown, USA', phone: '555-1234', email: 'contact@downtown.co' },
       { id: 'loc_2', name: 'Uptown Cuts', address: '456 Oak Ave, Anytown, USA', phone: '555-5678', email: 'contact@uptown.co' },
+      { id: 'loc_3', name: 'Soho Salon', address: '789 Pine Ln, Anytown, USA', phone: '555-9012', email: 'contact@soho.co' },
+      { id: 'loc_4', name: 'Kings Cross Barbers', address: '101 Maple Rd, Anytown, USA', phone: '555-3456', email: 'contact@kingscross.co' },
     ];
 
     let DUMMY_SERVICES: Service[] = [
@@ -15,7 +17,11 @@ const createDataStore = () => {
       { id: 'serv_2', name: 'Beard Trim', duration: 20, price: 15, locationId: 'loc_1', locationName: 'Downtown Barbers' },
       { id: 'serv_3', name: 'Hot Towel Shave', duration: 30, price: 25, locationId: 'loc_1', locationName: 'Downtown Barbers' },
       { id: 'serv_4', name: 'Modern Fade', duration: 60, price: 40, locationId: 'loc_2', locationName: 'Uptown Cuts' },
-      { id: 'serv_5', name: 'Coloring', duration: 90, price: 75, locationId: 'loc_2', locationName: 'Uptown Cuts' },
+      { id: 'serv_5', 'name': 'Coloring', 'duration': 90, 'price': 75, 'locationId': 'loc_2', 'locationName': 'Uptown Cuts' },
+      { id: 'serv_6', name: 'Creative Cut & Style', duration: 75, price: 60, locationId: 'loc_3', locationName: 'Soho Salon' },
+      { id: 'serv_7', name: 'Luxury Wet Shave', duration: 45, price: 45, locationId: 'loc_3', locationName: 'Soho Salon' },
+      { id: 'serv_8', name: 'Student Cut', duration: 30, price: 22, locationId: 'loc_4', locationName: 'Kings Cross Barbers' },
+      { id: 'serv_9', name: 'Buzz Cut', duration: 20, price: 18, locationId: 'loc_4', locationName: 'Kings Cross Barbers' },
     ];
 
     const generatePastBookings = (): Booking[] => {
@@ -23,25 +29,23 @@ const createDataStore = () => {
         const staff = [
             { id: 'staff_1', name: 'Alice', imageUrl: `https://i.pravatar.cc/100?u=staff_1` },
             { id: 'staff_2', name: 'Bob', imageUrl: `https://i.pravatar.cc/100?u=staff_2` },
-        ];
-        const services = [
-             { id: 'serv_1', name: 'Classic Haircut', price: 30, duration: 45, locationId: 'loc_1', locationName: 'Downtown Barbers' },
-             { id: 'serv_2', name: 'Beard Trim', price: 15, duration: 20, locationId: 'loc_1', locationName: 'Downtown Barbers' },
-             { id: 'serv_4', name: 'Modern Fade', price: 40, duration: 60, locationId: 'loc_2', locationName: 'Uptown Cuts' },
+            { id: 'staff_3', name: 'David', imageUrl: `https://i.pravatar.cc/100?u=staff_3` },
+            { id: 'staff_4', name: 'Eve', imageUrl: `https://i.pravatar.cc/100?u=staff_4` },
         ];
         const clients = [
             { name: 'John Doe', phone: '111-222-3333', email: 'john@doe.com' },
             { name: 'Jane Smith', phone: '444-555-6666', email: 'jane@smith.com' },
             { name: 'Peter Jones', phone: '777-888-9999', email: 'peter@jones.com' },
+            { name: 'Sarah Miller', phone: '222-333-4444', email: 'sarah@miller.com' },
+            { name: 'Michael Brown', phone: '555-666-7777', email: 'michael@brown.com' },
         ];
 
-        for (let i = 0; i < 20; i++) {
-            const date = new Date();
-            date.setDate(date.getDate() - Math.floor(Math.random() * 7)); // Within the last week
-            date.setHours(9 + Math.floor(Math.random() * 8), Math.random() > 0.5 ? 30 : 0, 0, 0);
+        for (let i = 0; i < 50; i++) {
+            const date = subDays(new Date(), Math.floor(Math.random() * 30)); // Within the last 30 days
+            date.setHours(9 + Math.floor(Math.random() * 8), Math.floor(Math.random() * 4) * 15, 0, 0);
 
-            const service = services[Math.floor(Math.random() * services.length)];
-            const staffMember = staff[Math.floor(Math.random() * staff.length)];
+            const service = DUMMY_SERVICES[Math.floor(Math.random() * DUMMY_SERVICES.length)];
+            const staffMember = DUMMY_STAFF.find(s => s.locationId === service.locationId) || staff[Math.floor(Math.random() * staff.length)];
             const client = clients[Math.floor(Math.random() * clients.length)];
 
             bookings.push({
@@ -68,7 +72,6 @@ const createDataStore = () => {
     futureDate.setHours(14, 0, 0, 0); // Set time to 2:00 PM
 
     let DUMMY_BOOKINGS: Booking[] = [
-        ...generatePastBookings(),
         {
             id: 'booking_future_1',
             locationId: 'loc_1',
@@ -94,7 +97,7 @@ const createDataStore = () => {
         workingHours: { monday: { start: '09:00', end: '17:00' }, tuesday: { start: '09:00', end: '17:00' }, wednesday: 'off', thursday: { start: '10:00', end: '18:00' }, friday: { start: '09:00', end: '17:00' }, saturday: 'off', sunday: 'off' },
       },
       {
-        id: 'staff_2', name: 'Bob', specialization: 'Stylist', locationId: 'loc_2', locationName: 'Uptown Cuts', email: 'bob@example.com',
+        id: 'staff_2', name: 'Bob', specialization: 'Stylist', locationId: 'loc_2', locationName: 'Uptown Cuts', email: 'bob.staff@example.com',
         imageUrl: `https://i.pravatar.cc/100?u=staff_2`,
         workingHours: { monday: 'off', tuesday: { start: '09:00', end: '17:00' }, wednesday: { start: '09:00', end: '17:00' }, thursday: { start: '11:00', end: '19:00' }, friday: { start: '09:00', end: '17:00' }, saturday: { start: '10:00', end: '14:00' }, sunday: 'off' },
       },
@@ -107,8 +110,31 @@ const createDataStore = () => {
         id: 'super_admin_user', name: 'Samantha (Owner)', specialization: 'Super Admin', locationId: 'loc_1', locationName: 'Downtown Barbers', email: 'superadmin@example.com',
         imageUrl: `https://i.pravatar.cc/100?u=super_admin_user`,
         workingHours: { monday: { start: '09:00', end: '17:00' }, tuesday: { start: '09:00', end: '17:00' }, wednesday: { start: '09:00', end: '17:00' }, thursday: { start: '09:00', end: '17:00' }, friday: { start: '09:00', end: '17:00' }, saturday: 'off', sunday: 'off' },
+      },
+      {
+        id: 'staff_3', name: 'David', specialization: 'Color Specialist', locationId: 'loc_3', locationName: 'Soho Salon', email: 'david.staff@example.com',
+        imageUrl: 'https://i.pravatar.cc/100?u=staff_3',
+        workingHours: { monday: { start: '10:00', end: '19:00' }, tuesday: { start: '10:00', end: '19:00' }, wednesday: { start: '10:00', end: '19:00' }, thursday: 'off', friday: { start: '10:00', end: '20:00' }, saturday: { start: '09:00', end: '18:00' }, sunday: 'off' },
+      },
+      {
+        id: 'staff_4', name: 'Eve', specialization: 'Lead Barber', locationId: 'loc_4', locationName: 'Kings Cross Barbers', email: 'eve.staff@example.com',
+        imageUrl: 'https://i.pravatar.cc/100?u=staff_4',
+        workingHours: { monday: { start: '08:00', end: '16:00' }, tuesday: { start: '08:00', end: '16:00' }, wednesday: { start: '08:00', end: '16:00' }, thursday: { start: '08:00', end: '16:00' }, friday: { start: '08:00', end: '12:00' }, saturday: 'off', sunday: 'off' },
+      },
+      {
+        id: 'staff_5', name: 'Frank', specialization: 'Apprentice', locationId: 'loc_1', locationName: 'Downtown Barbers', email: 'frank.staff@example.com',
+        imageUrl: 'https://i.pravatar.cc/100?u=staff_5',
+        workingHours: { monday: 'off', tuesday: { start: '12:00', end: '20:00' }, wednesday: { start: '12:00', end: '20:00' }, thursday: { start: '12:00', end: '20:00' }, friday: 'off', saturday: { start: '10:00', end: '18:00' }, sunday: 'off' },
+      },
+      {
+        id: 'staff_6', name: 'Grace', specialization: 'Stylist', locationId: 'loc_3', locationName: 'Soho Salon', email: 'grace.staff@example.com',
+        imageUrl: 'https://i.pravatar.cc/100?u=staff_6',
+        workingHours: { monday: { start: '09:00', end: '17:00' }, tuesday: { start: '09:00', end: '17:00' }, wednesday: 'off', thursday: { start: '09:00', end: '17:00' }, friday: { start: '09:00', end: '17:00' }, saturday: 'off', sunday: 'off' },
       }
     ];
+    
+    // Add generated past bookings after staff is defined
+    DUMMY_BOOKINGS.push(...generatePastBookings());
 
     let DUMMY_ADMIN_USERS: AdminUser[] = [
         { id: 'super_admin_user', email: 'superadmin@example.com', locationName: 'All Locations' },
@@ -117,84 +143,121 @@ const createDataStore = () => {
     
     return {
         // Locations
-        getLocations: async (id?: string) => id ? DUMMY_LOCATIONS.filter(l => l.id === id) : DUMMY_LOCATIONS.sort((a,b) => a.name.localeCompare(b.name)),
+        getLocations: async (id?: string) => {
+            const locations = id ? DUMMY_LOCATIONS.filter(l => l.id === id) : DUMMY_LOCATIONS;
+            return Promise.resolve(locations.sort((a,b) => a.name.localeCompare(b.name)));
+        },
         addLocation: async (data: Omit<Location, 'id'>) => {
             const newLocation = { id: `loc_${Date.now()}`, ...data };
             DUMMY_LOCATIONS.push(newLocation);
+            return Promise.resolve();
         },
         updateLocation: async (id: string, data: Partial<Location>) => {
             DUMMY_LOCATIONS = DUMMY_LOCATIONS.map(l => l.id === id ? { ...l, ...data } : l);
+            return Promise.resolve();
         },
         deleteLocation: async (id: string) => {
             DUMMY_LOCATIONS = DUMMY_LOCATIONS.filter(l => l.id !== id);
+            return Promise.resolve();
         },
 
         // Services
         getServices: async (locationId?: string) => {
             const services = locationId ? DUMMY_SERVICES.filter(s => s.locationId === locationId) : DUMMY_SERVICES;
-            return services.sort((a,b) => a.name.localeCompare(b.name));
+            return Promise.resolve(services.sort((a,b) => a.name.localeCompare(b.name)));
         },
         addService: async (data: Omit<Service, 'id'>) => {
             const newService = { id: `serv_${Date.now()}`, ...data };
             DUMMY_SERVICES.push(newService);
+            return Promise.resolve();
         },
         updateService: async (id: string, data: Partial<Service>) => {
             DUMMY_SERVICES = DUMMY_SERVICES.map(s => s.id === id ? { ...s, ...data } : s);
+            return Promise.resolve();
         },
         deleteService: async (id: string) => {
             DUMMY_SERVICES = DUMMY_SERVICES.filter(s => s.id !== id);
+            return Promise.resolve();
         },
 
         // Staff
         getStaff: async (locationId?: string) => {
             const staff = locationId ? DUMMY_STAFF.filter(s => s.locationId === locationId) : DUMMY_STAFF;
-            return staff.sort((a,b) => a.name.localeCompare(b.name));
+            return Promise.resolve(staff.sort((a,b) => a.name.localeCompare(b.name)));
         },
-        getStaffByEmail: async (email: string) => DUMMY_STAFF.find(s => s.email === email) || null,
+        getStaffByEmail: async (email: string) => {
+            const staff = DUMMY_STAFF.find(s => s.email === email) || null;
+            return Promise.resolve(staff);
+        },
         addStaff: async (data: Staff) => {
+            if (DUMMY_STAFF.some(s => s.email === data.email && data.email)) {
+                throw new Error("A staff member with this email already exists.");
+            }
             DUMMY_STAFF.push(data);
+            return Promise.resolve();
         },
         updateStaff: async (id: string, data: Partial<Staff>) => {
             DUMMY_STAFF = DUMMY_STAFF.map(s => s.id === id ? { ...s, ...data } : s);
+            return Promise.resolve();
         },
         deleteStaff: async (id: string) => {
             DUMMY_STAFF = DUMMY_STAFF.filter(s => s.id !== id);
+            // Also remove any admin access they might have
+            DUMMY_ADMIN_USERS = DUMMY_ADMIN_USERS.filter(a => a.id !== id);
+            return Promise.resolve();
         },
         
         // Admins
         getAdmins: async (locationId?: string) => {
             const admins = locationId ? DUMMY_ADMIN_USERS.filter(a => a.locationId === locationId) : DUMMY_ADMIN_USERS;
-            return admins.sort((a,b) => a.email.localeCompare(b.email));
+            return Promise.resolve(admins.sort((a,b) => a.email.localeCompare(b.email)));
         },
-        getAdminUserByEmail: async (email: string) => DUMMY_ADMIN_USERS.find(u => u.email === email) || null,
+        getAdminUserByEmail: async (email: string) => {
+            const admin = DUMMY_ADMIN_USERS.find(u => u.email === email) || null;
+            return Promise.resolve(admin);
+        },
         addAdmin: async (data: AdminUser) => {
+             if (DUMMY_ADMIN_USERS.some(a => a.email === data.email)) {
+                throw new Error("An admin with this email already exists.");
+            }
             DUMMY_ADMIN_USERS.push(data);
+            return Promise.resolve();
         },
         updateAdmin: async (id: string, data: Partial<AdminUser>) => {
             DUMMY_ADMIN_USERS = DUMMY_ADMIN_USERS.map(a => a.id === id ? { ...a, ...data } : a);
+            return Promise.resolve();
         },
         deleteAdmin: async (id: string) => {
             DUMMY_ADMIN_USERS = DUMMY_ADMIN_USERS.filter(a => a.id !== id);
+            return Promise.resolve();
         },
         
         // Bookings
         getBookings: async (locationId?: string) => {
              const upcoming = DUMMY_BOOKINGS.filter(b => new Date(b.bookingTimestamp) >= new Date());
              const bookings = locationId ? upcoming.filter(b => b.locationId === locationId) : upcoming;
-             return bookings.sort((a,b) => new Date(a.bookingTimestamp).getTime() - new Date(b.bookingTimestamp).getTime());
+             return Promise.resolve(bookings.sort((a,b) => new Date(a.bookingTimestamp).getTime() - new Date(b.bookingTimestamp).getTime()));
         },
         getAllBookings: async (locationId?: string) => {
             const bookings = locationId ? DUMMY_BOOKINGS.filter(b => b.locationId === locationId) : DUMMY_BOOKINGS;
-            return bookings.sort((a,b) => new Date(a.bookingTimestamp).getTime() - new Date(b.bookingTimestamp).getTime());
+            return Promise.resolve(bookings.sort((a,b) => new Date(a.bookingTimestamp).getTime() - new Date(b.bookingTimestamp).getTime()));
         },
-        getBookingsByPhone: async (phone: string) => DUMMY_BOOKINGS.filter(b => b.clientPhone === phone).sort((a,b) => new Date(b.bookingTimestamp).getTime() - new Date(a.bookingTimestamp).getTime()),
-        getBookingsByStaffId: async (staffId: string) => DUMMY_BOOKINGS.filter(b => b.staffId === staffId).sort((a,b) => new Date(b.bookingTimestamp).getTime() - new Date(a.bookingTimestamp).getTime()),
+        getBookingsByPhone: async (phone: string) => {
+            const bookings = DUMMY_BOOKINGS.filter(b => b.clientPhone === phone).sort((a,b) => new Date(b.bookingTimestamp).getTime() - new Date(a.bookingTimestamp).getTime());
+            return Promise.resolve(bookings);
+        },
+        getBookingsByStaffId: async (staffId: string) => {
+            const bookings = DUMMY_BOOKINGS.filter(b => b.staffId === staffId).sort((a,b) => new Date(b.bookingTimestamp).getTime() - new Date(a.bookingTimestamp).getTime());
+            return Promise.resolve(bookings);
+        },
         addBooking: async (data: NewBooking) => {
             const newBooking = { id: `booking_${Date.now()}`, ...data };
             DUMMY_BOOKINGS.push(newBooking);
+            return Promise.resolve();
         },
         deleteBooking: async (id: string) => {
             DUMMY_BOOKINGS = DUMMY_BOOKINGS.filter(b => b.id !== id);
+            return Promise.resolve();
         },
 
         // Client Loyalty
@@ -228,8 +291,8 @@ const createDataStore = () => {
                      });
                 }
             });
-
-            return Array.from(clientsMap.values()).sort((a, b) => b.totalVisits - a.totalVisits);
+            const clientArray = Array.from(clientsMap.values()).sort((a, b) => b.totalVisits - a.totalVisits);
+            return Promise.resolve(clientArray);
         }
     };
 };
@@ -244,3 +307,4 @@ export const {
     getBookings, getAllBookings, getBookingsByPhone, getBookingsByStaffId, addBooking, deleteBooking,
     getClientLoyaltyData
 } = dataStore;
+

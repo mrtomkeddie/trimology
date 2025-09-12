@@ -82,7 +82,7 @@ export const ClientLoyaltySchema = z.object({
     id: z.string(),
     name: z.string(),
     phone: z.string(),
-    email: z.string().optional(),
+    email: z.string().optional().or(z.literal('')),
     totalVisits: z.number(),
     lastVisit: z.string(), // ISO String
     locations: z.array(z.string()), // Array of location names
@@ -102,13 +102,13 @@ export const BookingFormSchema = z.object({
 });
 
 export const AdminBookingFormSchema = BookingFormSchema.extend({
-    clientPhone: z.string().optional(),
+    clientPhone: z.string().min(10, { message: 'Please enter a valid phone number.' }).optional().or(z.literal('')),
 });
 
 export const ServiceFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   duration: z.coerce.number().positive('Duration must be a positive number.'),
-  price: z.coerce.number().positive('Price must be a positive number.'),
+  price: z.coerce.number().min(0, 'Price cannot be negative.'),
   locationId: z.string({ required_error: 'Please assign a location.' }),
 });
 
@@ -153,7 +153,7 @@ export const StaffFormSchema = z.object({
   workingHours: StaffWorkingHoursSchema.optional(),
 }).superRefine((data, ctx) => {
     // When creating a brand new user (no pre-existing ID from linking an admin), email and password are required.
-    if (!data.id) { 
+    if (!data.id && !data.email?.includes('@')) { 
         if (!data.email) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -185,3 +185,4 @@ export const LocationFormSchema = z.object({
     phone: z.string().optional(),
     email: z.string().email().optional().or(z.literal('')),
 });
+
