@@ -141,6 +141,7 @@ export async function createBooking(bookingData: BookingData) {
         
         for (const potentialStaff of bookableStaffAtLocation) {
             const dayOfWeek = dayMap[getDay(bookingStart)];
+            if (!potentialStaff.workingHours) continue; // Skip staff with no schedule
             const dayHours = potentialStaff.workingHours?.[dayOfWeek];
             if (!dayHours || dayHours === 'off') continue;
 
@@ -251,11 +252,13 @@ export async function getUnavailableDays(month: Date, serviceId: string, staffId
             
             // Check each staff member to see if ANY have availability on this day
             for (const staffMember of staffToCheck) {
+                // BUG FIX: Check for workingHours existence
                 if (!staffMember.workingHours) continue;
 
                 const dayOfWeek = dayMap[getDay(currentDay)];
                 const dayHours = staffMember.workingHours?.[dayOfWeek];
 
+                // BUG FIX: Check if dayHours is defined and not 'off'
                 if (!dayHours || dayHours === 'off') continue; // Staff is off this day
 
                 const workDayStart = parse(dayHours.start, 'HH:mm', currentDay);
