@@ -251,9 +251,10 @@ export async function getUnavailableDays(month: Date, serviceId: string, staffId
             
             // Check each staff member to see if ANY have availability on this day
             for (const staffMember of staffToCheck) {
-                 if (!staffMember.workingHours) continue;
+                if (!staffMember.workingHours) continue;
+
                 const dayOfWeek = dayMap[getDay(currentDay)];
-                const dayHours = staffMember.workingHours[dayOfWeek];
+                const dayHours = staffMember.workingHours?.[dayOfWeek];
 
                 if (!dayHours || dayHours === 'off') continue; // Staff is off this day
 
